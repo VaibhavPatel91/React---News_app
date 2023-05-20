@@ -1,5 +1,6 @@
 import React, { Component } from "react";
 import NewsItem from "./NewsItem";
+import Spinner from "./Spinner";
 
 export class News extends Component {
   constructor() {
@@ -17,13 +18,16 @@ export class News extends Component {
 
   async componentDidMount() {
     let url =
-      "https://newsapi.org/v2/top-headlines?country=in&apiKey=213d94e8cedc454fb8e1e59d82e096bc&page=1";
+      `https://newsapi.org/v2/top-headlines?country=in&apiKey=213d94e8cedc454fb8e1e59d82e096bc&page=1&pageSize=${this.props.pageSize}`;
+
+      this.setState({loading:true})
     let data = await fetch(url);
     let parsedData = await data.json();
     // console.log(parsedData);
     this.setState({
       articles: parsedData.articles,
       totalResults: parsedData.totalResults,
+      loading: false
     });
   }
 
@@ -32,7 +36,7 @@ export class News extends Component {
     console.log("previous");
     let url = `https://newsapi.org/v2/top-headlines?country=in&apiKey=213d94e8cedc454fb8e1e59d82e096bc&page=${
       this.state.page - 1
-    }&pageSize=20`;
+    }&pageSize=${this.props.pageSize}`;
     let data = await fetch(url);
     let parsedData = await data.json();
     // console.log(parsedData);
@@ -47,18 +51,23 @@ export class News extends Component {
     // this if condition calculates the total results devided by 20 and state of the page
     // and if state of the page is less than the total number than it's not works otherwise
     // code under an else blocks runs
-    if (this.state.page + 1 > Math.ceil(this.state.totalResults / 20)) {
-    } else {
+    if (!(this.state.page + 1 > Math.ceil(this.state.totalResults / this.props.pageSize))) {
       console.log("next");
+
       let url = `https://newsapi.org/v2/top-headlines?country=in&apiKey=213d94e8cedc454fb8e1e59d82e096bc&page=${
         this.state.page + 1
-      }&pageSize=20`;
+      }&pageSize=${this.props.pageSize}`;
+
+      this.setState({loading:true})
       let data = await fetch(url);
       let parsedData = await data.json();
       // console.log(parsedData);
       this.setState({
         page: this.state.page + 1,
         articles: parsedData.articles,
+
+        // set to loading spinner to false when api loads all the data
+        loading : false
       });
     }
   };
@@ -68,8 +77,11 @@ export class News extends Component {
       <div className="container my-3">
         <h1 className="text-center">News - Top Headlines</h1>
 
+        {/* import spinner component */}
+        {this.state.loading && <Spinner/>}
+
         <div className="row">
-          {this.state.articles.map((element) => {
+          {!this.state.loading && this.state.articles.map((element) => {
             return (
               <div className="col md-4" key={element.url}>
                 <NewsItem
@@ -86,6 +98,8 @@ export class News extends Component {
         </div>
 
         <div className="container d-flex justify-content-between">
+
+          {/* privios button */}
           <button
             disabled={this.state.page <= 1}
             type="button"
@@ -94,7 +108,10 @@ export class News extends Component {
           >
             &larr; Previous
           </button>
+
+          {/* Next button */}
           <button
+            disabled={this.state.page + 1 > Math.ceil(this.state.totalResults / this.props.pageSize)}
             type="button"
             className="btn btn-dark"
             onClick={this.handleNextClick}
